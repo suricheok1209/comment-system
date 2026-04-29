@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高士德午餐小助手</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #fafafa; }
+        .glass-nav { 
+            background: rgba(255, 255, 255, 0.84);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .tab-active { color: #f472b6; border-bottom: 2px solid #f472b6; }
+        .card-done { opacity: 0.6; grayscale: 50%; }
+        .spinning { animation: spin-slow 0.1s linear infinite; }
+        @keyframes spin-slow {
+            0% { transform: scale(0.95) translateY(0px); }
+            50% { transform: scale(1) translateY(-5px); }
+            100% { transform: scale(0.95) translateY(0px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 pb-28">
+
+    <div id="app" class="max-w-md mx-auto px-6 pt-8 pb-12 space-y-6">
+        <!-- Header -->
+        <header class="text-center space-y-2">
+            <div class="inline-flex p-3 bg-pink-50 rounded-full mb-1">
+                <i data-lucide="utensils" class="w-6 h-6 text-pink-500"></i>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900">高士德午餐小助手</h1>
+            <p class="text-slate-500 text-xs">日系可愛風格的美食指南</p>
+        </header>
+
+        <!-- Stats Counter -->
+        <section class="flex justify-center gap-6 py-2">
+            <div class="flex flex-col items-center">
+                <div id="active-count" class="px-3 py-1 bg-amber-50 text-amber-500 rounded-full text-xs font-bold shadow-sm">0</div>
+                <span class="text-[10px] text-slate-400 mt-1 font-bold uppercase tracking-wider">待吃中</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div id="done-count" class="px-3 py-1 bg-emerald-50 text-emerald-500 rounded-full text-xs font-bold shadow-sm">0</div>
+                <span class="text-[10px] text-slate-400 mt-1 font-bold uppercase tracking-wider">已解鎖</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div id="total-count" class="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold shadow-sm">0</div>
+                <span class="text-[10px] text-slate-400 mt-1 font-bold uppercase tracking-wider">總計</span>
+            </div>
+        </section>
+
+        <!-- View Switcher -->
+        <div class="flex justify-center border-b border-slate-100 overflow-x-auto hide-scroll">
+            <button onclick="switchView('lucky')" id="view-tab-lucky" class="px-6 py-3 text-sm font-bold transition-all tab-active flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="sparkles" class="w-4 h-4"></i> 隨機抽籤
+            </button>
+            <button onclick="switchView('list')" id="view-tab-list" class="px-6 py-3 text-sm font-bold transition-all text-slate-400 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="layout-grid" class="w-4 h-4"></i> 美食牆
+            </button>
+            <button onclick="switchView('rate')" id="view-tab-rate" class="px-6 py-3 text-sm font-bold transition-all text-slate-400 border-b-2 border-transparent flex items-center gap-2 whitespace-nowrap">
+                <i data-lucide="message-square" class="w-4 h-4"></i> 撰寫評價
+            </button>
+        </div>
+
+        <!-- lucky View -->
+        <div id="view-lucky" class="space-y-6 pt-4">
+            <div id="lucky-display" class="bg-white p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm text-center min-h-[220px] flex flex-col items-center justify-center space-y-4">
+                <div id="lucky-icon" class="text-slate-100">
+                    <i data-lucide="coffee" class="w-12 h-12"></i>
+                </div>
+                <div id="lucky-text">
+                    <p class="text-slate-300 font-bold">中午吃什麼好呢？</p>
+                    <p class="text-[10px] text-slate-200 uppercase tracking-widest mt-1">點擊下方按鈕開始抽籤</p>
+                </div>
+            </div>
+            <button onclick="luckyDraw()" id="btn-draw" class="w-full py-4 bg-amber-400 text-white rounded-full text-lg font-bold shadow-lg shadow-amber-100 active:scale-95 transition-all">
+                開始抽籤
+            </button>
+        </div>
+
+        <!-- List/Filter View -->
+        <div id="view-list" class="hidden space-y-6 pt-4">
+            <!-- Search Bar -->
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                <input 
+                    type="text" 
+                    id="search-input"
+                    oninput="handleSearch()"
+                    placeholder="🔍 搜尋標籤或店名 (例如：#日式, 麵)..."
+                    class="w-full pl-12 pr-12 py-3.5 bg-slate-50 border-transparent border-2 rounded-full text-sm focus:outline-none focus:border-pink-200 focus:bg-white transition-all shadow-inner font-medium placeholder:text-slate-300"
+                >
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="flex justify-center space-x-2">
+                <button onclick="setFilter('all')" id="filter-all" class="px-5 py-2 text-[11px] font-bold rounded-full transition-all bg-emerald-400 text-white shadow-sm">全部</button>
+                <button onclick="setFilter('active')" id="filter-active" class="px-5 py-2 text-[11px] font-bold rounded-full transition-all bg-slate-100 text-slate-500">待吃</button>
+                <button onclick="setFilter('done')" id="filter-done" class="px-5 py-2 text-[11px] font-bold rounded-full transition-all bg-slate-100 text-slate-500">已解鎖</button>
+            </div>
+
+            <!-- List -->
+            <div id="restaurant-list" class="grid grid-cols-1 gap-5">
+                <!-- Data rendered here -->
+            </div>
+        </div>
+
+        <!-- Rating View -->
+        <div id="view-rate" class="hidden space-y-6 pt-4">
+            <div class="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm space-y-6">
+                <header>
+                    <h3 class="text-xl font-bold text-slate-900">發表您的食評</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">選一間店，給予評價吧！</p>
+                </header>
+
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">選擇餐廳</label>
+                        <select id="rate-restaurant-select" class="w-full px-5 py-3 bg-slate-50 rounded-2xl text-sm focus:outline-none focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all appearance-none cursor-pointer">
+                            <!-- Options injected by JS -->
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">評分 (點擊愛心)</label>
+                        <div id="star-rating" class="flex gap-2">
+                            <button onclick="setRating(1)" class="rating-heart"><i data-lucide="heart" class="w-8 h-8 text-slate-200"></i></button>
+                            <button onclick="setRating(2)" class="rating-heart"><i data-lucide="heart" class="w-8 h-8 text-slate-200"></i></button>
+                            <button onclick="setRating(3)" class="rating-heart"><i data-lucide="heart" class="w-8 h-8 text-slate-200"></i></button>
+                            <button onclick="setRating(4)" class="rating-heart"><i data-lucide="heart" class="w-8 h-8 text-slate-200"></i></button>
+                            <button onclick="setRating(5)" class="rating-heart"><i data-lucide="heart" class="w-8 h-8 text-slate-200"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">食評留言</label>
+                        <textarea id="rate-comment-input" rows="3" placeholder="它的味道如何？有推薦的菜式嗎？" class="w-full px-5 py-4 bg-slate-50 rounded-2xl text-xs focus:outline-none focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all resize-none"></textarea>
+                    </div>
+
+                    <button onclick="submitReview()" class="w-full py-4 bg-pink-400 text-white rounded-full text-sm font-bold shadow-lg shadow-pink-100 active:scale-95 transition-all">
+                        送出評價
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="pt-8 text-center border-t border-slate-50">
+            <p class="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">Horta Lunch Assistant v2.1</p>
+            <p class="text-[9px] text-slate-200 mt-1">Made with Vanilla JS for better performance</p>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-container" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none"></div>
+
+    <script>
+        const SEED_DATA = [
+            { "name": "千鳥", "tags": ["日式", "壽喜燒"], "address": "澳門文第士街10-12號", "status": "active" },
+            { "name": "小泉居", "tags": ["台式", "飲品"], "address": "澳門沙嘉都喇街25號", "status": "active" },
+            { "name": "今生", "tags": ["中式"], "address": "澳門渡船街41號", "status": "active" },
+            { "name": "文記", "tags": ["茶餐廳"], "address": "澳門亞利鴉架街2號", "status": "active" },
+            { "name": "火滾", "tags": ["台式火鍋"], "address": "澳門雅廉訪大馬路46號", "status": "active" },
+            { "name": "四哥", "tags": ["中式", "酸辣粉"], "address": "澳門渡船街2-O號", "status": "active" },
+            { "name": "艾菲爾", "tags": ["西式"], "address": "澳門渡船街45號", "status": "active" },
+            { "name": "均安隆", "tags": ["中式"], "address": "澳門亞利鴉架街15-A號", "status": "active" },
+            { "name": "金利", "tags": ["中式"], "address": "澳門雅廉訪大馬路85號", "note": "推薦雞米", "status": "active" },
+            { "name": "金堅仔", "tags": ["中式面食"], "address": "澳門渡船街43號", "status": "active" },
+            { "name": "金隆", "tags": ["中式", "食面"], "address": "澳門渡船街4-A號", "status": "active" },
+            { "name": "美好年代", "tags": ["西式"], "address": "澳門文第士街5號", "note": "三文焦糖pizza", "status": "active" },
+            { "name": "美家", "tags": ["中式"], "address": "澳門文第士街25號", "status": "active" },
+            { "name": "俾你啦廣場", "tags": ["Food Court"], "address": "澳門三盞燈圓形地", "status": "active" },
+            { "name": "海雲台", "tags": ["韓式"], "address": "澳門渡船街55號", "status": "active" },
+            { "name": "狸", "tags": ["日式"], "address": "澳門渡船街38-C號", "status": "active" },
+            { "name": "馬交茶檔", "tags": ["茶餐廳"], "address": "澳門俾利喇街72號", "status": "active" },
+            { "name": "鬼丸", "tags": ["日式拉麵"], "address": "澳門渡船街10號", "status": "active" },
+            { "name": "豚將", "tags": ["日式"], "address": "澳門亞利鴉架街13號", "status": "active" },
+            { "name": "魚一", "tags": ["日式迴轉壽司"], "address": "澳門高士德大馬路22號", "status": "active" },
+            { "name": "發達", "tags": ["中式"], "address": "澳門渡船街5-C號", "status": "active" },
+            { "name": "雲吞麵世", "tags": ["中式", "食面"], "address": "澳門渡船街11號", "status": "active" },
+            { "name": "園林", "tags": ["中式", "食面"], "address": "澳門亞利鴉架街4號", "status": "active" },
+            { "name": "新安樂園", "tags": ["緬甸菜"], "address": "澳門羅利老馬路12號", "status": "active" },
+            { "name": "新爽爽", "tags": ["中式"], "address": "澳門亞利鴉架街21號", "status": "active" },
+            { "name": "新潮", "tags": ["中式"], "address": "澳門渡船街41號", "status": "active" },
+            { "name": "楊枝金撈", "tags": ["糖水"], "address": "澳門渡船街39號", "status": "active" },
+            { "name": "遊咖啡", "tags": ["西式"], "address": "澳門沙嘉都喇街27號", "status": "active" },
+            { "name": "雍記", "tags": ["糖水", "小食"], "address": "澳門亞利鴉架街25號", "status": "active" },
+            { "name": "潮館", "tags": ["中式"], "address": "澳門俾利喇街108號", "status": "active" },
+            { "name": "貓哥", "tags": ["茶餐廳"], "address": "澳門亞利鴉架街1號", "status": "active" },
+            { "name": "聯記", "tags": ["中式"], "address": "澳門亞利鴉架街11-A號", "status": "active" },
+            { "name": "疉記", "tags": ["中式"], "address": "澳門沙嘉都喇街37號", "status": "active" },
+            { "name": "飄亭", "tags": ["日式"], "address": "澳門渡船街38號", "status": "active" },
+            { "name": "囍記", "tags": ["中式", "食面"], "address": "澳門亞利鴉架街11-A號", "status": "active" },
+            { "name": "櫻川", "tags": ["日式"], "address": "澳門沙嘉都喇街39號", "note": "推薦三文魚親子丼", "status": "active" },
+            { "name": "蘭犬", "tags": ["日式"], "address": "澳門渡船街11-B號", "status": "active" },
+            { "name": "Common room", "tags": ["西式"], "address": "澳門文第士街30號", "status": "active" },
+            { "name": "Laika Land", "tags": ["寵物餐廳"], "address": "澳門文第士街40號", "status": "active" },
+            { "name": "M2", "tags": ["西式"], "address": "澳門俾利喇街108號皇子大廈", "status": "active" },
+            { "name": "Pho", "tags": ["越南菜"], "address": "澳門高士德大馬路7號", "status": "active" },
+            { "name": "tree cafe", "tags": ["日式飯團"], "address": "澳門亞利鴉架街7號", "status": "active" },
+            { "name": "ufufu cafe", "tags": ["西式"], "address": "澳門高士德大馬路2-4號", "status": "active" },
+            { "name": "wonderful wall", "tags": ["西式"], "address": "澳門沙嘉都喇街23號", "note": "推薦疏乎厘", "status": "active" }
+        ];
+
+        let currentView = 'lucky';
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let isSpinning = false;
+
+        function generateId() {
+            return Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+        }
+
+        /**
+         * 核心 Function 1: saveData(data)
+         */
+        function saveData(records) {
+            localStorage.setItem("records", JSON.stringify(records));
+            renderList();
+        }
+
+        /**
+         * 核心 Function 2: loadData()
+         */
+        function loadData() {
+            const data = localStorage.getItem("records");
+            if (!data) {
+                const initialized = SEED_DATA.map(r => ({
+                    ...r,
+                    id: generateId(),
+                    createdAt: new Date().toISOString(),
+                    status: "active",
+                    comments: []
+                }));
+                localStorage.setItem("records", JSON.stringify(initialized));
+                return initialized;
+            }
+            return JSON.parse(data);
+        }
+
+        /**
+         * 核心 Function 3: renderList()
+         */
+        function renderList() {
+            const records = loadData();
+            const listContainer = document.getElementById('restaurant-list');
+            
+            // Counters
+            const activeCount = records.filter(r => r.status === 'active').length;
+            const doneCount = records.filter(r => r.status === 'done').length;
+            document.getElementById('active-count').innerText = activeCount;
+            document.getElementById('done-count').innerText = doneCount;
+            document.getElementById('total-count').innerText = records.length;
+
+            if (currentView !== 'list') return;
+
+            // Filtering & Searching
+            let filtered = records;
+            if (currentFilter !== 'all') filtered = filtered.filter(r => r.status === currentFilter);
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase().trim().replace(/^#/, '');
+                filtered = filtered.filter(r => 
+                    r.name.toLowerCase().includes(q) || 
+                    r.tags.some(t => t.toLowerCase().includes(q))
+                );
+            }
+
+            // Sort: active first
+            filtered.sort((a, b) => {
+                if (a.status === b.status) return a.name.localeCompare(b.name);
+                return a.status === 'active' ? -1 : 1;
+            });
+
+            listContainer.innerHTML = '';
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="py-16 text-center space-y-4">
+                        <div class="text-5xl">😅</div>
+                        <p class="text-slate-900 font-bold">哎呀，高士德好像沒這間店...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(r => {
+                const card = document.createElement('div');
+                card.className = `bg-white p-6 rounded-[2.5rem] border-2 border-slate-50 transition-all ${r.status === 'done' ? 'card-done' : ''}`;
+                
+                const tagsHtml = r.tags.map(t => `<span class="text-[10px] text-slate-400">#${t}</span>`).join(' ');
+                const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ' ' + r.name)}`;
+                
+                // Comments HTML
+                const commentsHtml = (r.comments && r.comments.length > 0) 
+                    ? `<div class="mt-4 pt-4 border-t border-slate-50 space-y-2">
+                        ${r.comments.map(c => `
+                            <div class="flex gap-2">
+                                <span class="text-[10px] bg-slate-50 px-2 py-0.5 rounded-full text-slate-400 font-bold h-fit mt-0.5 shrink-0">食客</span>
+                                <p class="text-[10px] text-slate-500 leading-normal">${c}</p>
+                            </div>
+                        `).join('')}
+                       </div>`
+                    : '';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-slate-900 leading-tight ${r.status === 'done' ? 'line-through' : ''}">${r.name}</h4>
+                                ${(r.comments && r.comments.length > 0) ? `<span class="bg-pink-50 text-pink-500 text-[9px] px-1.5 py-0.5 rounded-md font-bold border border-pink-100 flex items-center gap-1"><i data-lucide="message-square" class="w-2.5 h-2.5"></i> ${r.comments.length}</span>` : ''}
+                            </div>
+                            <div class="flex flex-wrap gap-1">${tagsHtml}</div>
+                            <div class="flex items-center gap-1 text-[10px] text-slate-400">
+                                <i data-lucide="map-pin" class="w-3 h-3 text-emerald-400"></i>
+                                <span>${r.address}</span>
+                            </div>
+                        </div>
+                        <button onclick="toggleRecordStatus('${r.id}')" class="shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all ${r.status === 'done' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-emerald-600'}">
+                            ${r.status === 'done' ? '😋 已吃過' : '😋 吃過?'}
+                        </button>
+                    </div>
+
+                    ${r.note ? `<p class="text-[10px] text-amber-500 font-bold bg-amber-50 px-3 py-1 rounded-full w-fit mt-3">✨ ${r.note}</p>` : ''}
+
+                    <div class="mt-4 flex gap-2">
+                        <a href="${navUrl}" target="_blank" class="flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-[11px] font-bold hover:bg-blue-100 transition-colors">
+                            <i data-lucide="navigation" class="w-3 h-3"></i> 📍 帶我去吃
+                        </a>
+                    </div>
+
+                    ${commentsHtml}
+
+                    <div class="mt-4 pt-4 border-t border-slate-50 flex gap-2">
+                        <input type="text" id="comment-input-${r.id}" 
+                            onkeyup="if(event.key === 'Enter') addComment('${r.id}')"
+                            placeholder="留個言表達美味..." 
+                            class="flex-1 bg-slate-50 rounded-full px-4 py-2 text-[10px] focus:outline-none focus:bg-white border border-transparent focus:border-slate-100 transition-all">
+                        <button onclick="addComment('${r.id}')" class="p-2 bg-pink-50 text-pink-500 rounded-full hover:bg-pink-100 transition-colors">
+                            <i data-lucide="send" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // --- Interaction Logic ---
+
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('view-lucky').classList.toggle('hidden', view !== 'lucky');
+            document.getElementById('view-list').classList.toggle('hidden', view !== 'list');
+            document.getElementById('view-rate').classList.toggle('hidden', view !== 'rate');
+            
+            document.getElementById('view-tab-lucky').classList.toggle('tab-active', view === 'lucky');
+            document.getElementById('view-tab-lucky').classList.toggle('text-slate-400', view !== 'lucky');
+            document.getElementById('view-tab-list').classList.toggle('tab-active', view === 'list');
+            document.getElementById('view-tab-list').classList.toggle('text-slate-400', view !== 'list');
+            document.getElementById('view-tab-rate').classList.toggle('tab-active', view === 'rate');
+            document.getElementById('view-tab-rate').classList.toggle('text-slate-400', view !== 'rate');
+            
+            if (view === 'rate') {
+                populateRestaurantSelect();
+            }
+
+            renderList();
+        }
+
+        // --- Rating Selection Logic ---
+        let selectedRating = 0;
+        function setRating(val) {
+            selectedRating = val;
+            const hearts = document.querySelectorAll('.rating-heart i');
+            hearts.forEach((heart, index) => {
+                if (index < val) {
+                    heart.classList.remove('text-slate-200');
+                    heart.classList.add('text-pink-400', 'fill-pink-400');
+                } else {
+                    heart.classList.remove('text-pink-400', 'fill-pink-400');
+                    heart.classList.add('text-slate-200');
+                }
+            });
+        }
+
+        function populateRestaurantSelect() {
+            const select = document.getElementById('rate-restaurant-select');
+            const records = loadData();
+            // Sort by name for the dropdown
+            records.sort((a, b) => a.name.localeCompare(b.name));
+            
+            select.innerHTML = records.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+        }
+
+        function submitReview() {
+            const restaurantId = document.getElementById('rate-restaurant-select').value;
+            const comment = document.getElementById('rate-comment-input').value.trim();
+            
+            if (selectedRating === 0) return showToast('⚠️ 請先點擊愛心進行評分');
+            if (!comment) return showToast('⚠️ 請填寫食評留言');
+
+            const records = loadData();
+            const r = records.find(x => x.id === restaurantId);
+            if (r) {
+                if (!r.comments) r.comments = [];
+                const heartIcons = '❤️'.repeat(selectedRating);
+                r.comments.push(`${heartIcons} ${comment}`);
+                
+                document.getElementById('rate-comment-input').value = '';
+                setRating(0);
+                saveData(records);
+                showToast('✨ 評價已送出！感謝您的分享');
+                switchView('list');
+            }
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            ['all', 'active', 'done'].forEach(f => {
+                const btn = document.getElementById(`filter-${f}`);
+                btn.className = `px-5 py-2 text-[11px] font-bold rounded-full transition-all ${f === filter ? 'bg-emerald-400 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`;
+            });
+            renderList();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('search-input').value;
+            renderList();
+        }
+
+        function toggleRecordStatus(id) {
+            const records = loadData();
+            const r = records.find(x => x.id === id);
+            if (r) {
+                r.status = r.status === 'done' ? 'active' : 'done';
+                saveData(records);
+                showToast(r.status === 'done' ? '✅ 已解鎖這間餐廳！' : '🔄 已恢復為待吃清單');
+            }
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-slate-900 text-white px-4 py-2 rounded-full text-[10px] font-bold shadow-2xl transition-all opacity-0 translate-y-4';
+            toast.innerText = message;
+            container.appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-y-4');
+            }, 10);
+
+            // Hide and remove
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        function addComment(id) {
+            const input = document.getElementById(`comment-input-${id}`);
+            const text = input.value.trim();
+            if (!text) return;
+            
+            const records = loadData();
+            const r = records.find(x => x.id === id);
+            if (r) {
+                if (!r.comments) r.comments = [];
+                r.comments.push(text);
+                input.value = '';
+                saveData(records);
+                showToast('💬 留言已送出！');
+            }
+        }
+
+        /**
+         * 隨機抽籤 (Lucky Draw)
+         */
+        function luckyDraw() {
+            if (isSpinning) return;
+            const records = loadData().filter(r => r.status === 'active');
+            if (records.length === 0) return alert("沒待吃餐廳了！全部吃光了嗎？");
+
+            isSpinning = true;
+            const btn = document.getElementById('btn-draw');
+            const display = document.getElementById('lucky-display');
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerText = '正在選餐...';
+            display.classList.add('spinning');
+
+            let counter = 0;
+            const duration = 2000;
+            const intervalTime = 100;
+            const totalSteps = duration / intervalTime;
+
+            const timer = setInterval(() => {
+                const randomSample = records[Math.floor(Math.random() * records.length)];
+                display.innerHTML = `
+                    <p class="text-xs text-slate-400 uppercase tracking-widest animate-pulse">挑選中...</p>
+                    <h3 class="text-3xl font-bold text-slate-800">${randomSample.name}</h3>
+                `;
+                
+                counter++;
+                if (counter >= totalSteps) {
+                    clearInterval(timer);
+                    const final = records[Math.floor(Math.random() * records.length)];
+                    display.classList.remove('spinning');
+                    display.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="inline-flex p-3 bg-amber-50 rounded-full">
+                                <i data-lucide="sparkles" class="w-8 h-8 text-amber-500"></i>
+                            </div>
+                            <h3 class="text-4xl font-bold text-slate-900">${final.name}</h3>
+                            <div class="flex flex-wrap justify-center gap-1">
+                                ${final.tags.map(t => `<span class="bg-slate-100 text-[10px] px-2 py-0.5 rounded-full text-slate-400">#${t}</span>`).join('')}
+                            </div>
+                            <p class="text-[11px] text-slate-400 max-w-[200px] mx-auto leading-relaxed">📍 ${final.address}</p>
+                            <button onclick="switchView('list'); document.getElementById('search-input').value='${final.name}'; handleSearch();" class="text-xs text-pink-500 font-bold border-b border-pink-200">去美食牆看評價</button>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#fbdf7e', '#f472b6', '#4ade80'] });
+                    isSpinning = false;
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.innerText = '抽中了！再抽一張？';
+                }
+            }, intervalTime);
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            renderList();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
