@@ -10,15 +10,11 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <style>
         body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #fafafa; }
-        .glass-nav { 
-            background: rgba(255, 255, 255, 0.84);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
+        .glass-nav { background: rgba(255, 255, 255, 0.84); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
         .tab-active { color: #f472b6; border-bottom: 2px solid #f472b6; }
-        .card-done { opacity: 0.6; grayscale: 50%; }
+        .card-done { opacity: 0.6; filter: grayscale(50%); }
         .spinning { animation: spin-slow 0.1s linear infinite; }
         @keyframes spin-slow {
             0% { transform: scale(0.95) translateY(0px); }
@@ -83,13 +79,7 @@
         <div id="view-list" class="hidden space-y-6 pt-4">
             <div class="relative">
                 <i data-lucide="search" class="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                <input 
-                    type="text" 
-                    id="search-input"
-                    oninput="handleSearch()"
-                    placeholder="🔍 搜尋標籤或店名 (例如：#日式, 麵)..."
-                    class="w-full pl-12 pr-12 py-3.5 bg-slate-50 border-transparent border-2 rounded-full text-sm focus:outline-none focus:border-pink-200 focus:bg-white transition-all shadow-inner font-medium placeholder:text-slate-300"
-                >
+                <input type="text" id="search-input" oninput="handleSearch()" placeholder="🔍 搜尋標籤或店名..." class="w-full pl-12 pr-12 py-3.5 bg-slate-50 border-transparent border-2 rounded-full text-sm focus:outline-none focus:border-pink-200 focus:bg-white transition-all shadow-inner font-medium placeholder:text-slate-300">
             </div>
 
             <div class="flex justify-center space-x-2">
@@ -98,8 +88,7 @@
                 <button onclick="setFilter('done')" id="filter-done" class="px-5 py-2 text-[11px] font-bold rounded-full transition-all bg-slate-100 text-slate-500">已解鎖</button>
             </div>
 
-            <div id="restaurant-list" class="grid grid-cols-1 gap-5">
-                </div>
+            <div id="restaurant-list" class="grid grid-cols-1 gap-5"></div>
         </div>
 
         <div id="view-rate" class="hidden space-y-6 pt-4">
@@ -112,8 +101,7 @@
                 <div class="space-y-4">
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">選擇餐廳</label>
-                        <select id="rate-restaurant-select" class="w-full px-5 py-3 bg-slate-50 rounded-2xl text-sm focus:outline-none focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all appearance-none cursor-pointer">
-                            </select>
+                        <select id="rate-restaurant-select" class="w-full px-5 py-3 bg-slate-50 rounded-2xl text-sm focus:outline-none focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all appearance-none cursor-pointer"></select>
                     </div>
 
                     <div class="space-y-2">
@@ -132,24 +120,24 @@
                         <textarea id="rate-comment-input" rows="3" placeholder="它的味道如何？有推薦的菜式嗎？" class="w-full px-5 py-4 bg-slate-50 rounded-2xl text-xs focus:outline-none focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all resize-none"></textarea>
                     </div>
 
-                    <button onclick="submitReview()" class="w-full py-4 bg-pink-400 text-white rounded-full text-sm font-bold shadow-lg shadow-pink-100 active:scale-95 transition-all">
-                        送出評價
-                    </button>
+                    <button onclick="submitReview()" class="w-full py-4 bg-pink-400 text-white rounded-full text-sm font-bold shadow-lg shadow-pink-100 active:scale-95 transition-all">送出評價</button>
                 </div>
             </div>
         </div>
 
         <footer class="pt-8 text-center border-t border-slate-50">
-            <p class="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">Horta Lunch Assistant v2.1</p>
-            <p class="text-[9px] text-slate-200 mt-1">Made with Vanilla JS for better performance</p>
+            <p class="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">Horta Lunch Assistant v2.2</p>
+            <p class="text-[9px] text-slate-200 mt-1">Synced with Google Sheets</p>
         </footer>
     </div>
 
     <div id="toast-container" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none"></div>
 
     <script>
-        // --- 後端同步設定公用網址 ---
-        const APPS_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+        // ==========================================
+        // ★ 請將下方替換為你的 Google Apps Script 網址
+        // ==========================================
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxpSuBpKdSZOQPkaOtSxokC4ad_V1AwG_ZaCC25eQiMK4QsYjGmV_zTec8DbVEO7L02/exec";
 
         const SEED_DATA = [
             { "name": "千鳥", "tags": ["日式", "壽喜燒"], "address": "澳門文第士街10-12號", "status": "active" },
@@ -208,38 +196,27 @@
         }
 
         /**
-         * 後端非同步同步傳送工具 (syncToSheet)
+         * 雲端同步工具
          */
         function syncToSheet(payload) {
-            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE") {
-                return; // 如果還是預設的預留位置，則靜態不傳送
-            }
+            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE") return;
             
             fetch(APPS_SCRIPT_URL, {
                 method: "POST",
-                headers: { "Content-Type": "text/plain" },
+                // 必須設定 text/plain 避免 CORS preflight
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             })
             .then(res => res.json())
-            .then(data => {
-                console.log("雲端同步成功:", data);
-            })
-            .catch(err => {
-                console.warn("雲端同步失敗，但不影響本機運作:", err);
-            });
+            .then(data => console.log("雲端同步:", data))
+            .catch(err => console.warn("同步失敗 (本機仍可運作):", err));
         }
 
-        /**
-         * 核心 Function 1: saveData(data)
-         */
         function saveData(records) {
             localStorage.setItem("records", JSON.stringify(records));
             renderList();
         }
 
-        /**
-         * 核心 Function 2: loadData()
-         */
         function loadData() {
             const data = localStorage.getItem("records");
             if (!data) {
@@ -251,42 +228,28 @@
                     comments: []
                 }));
                 localStorage.setItem("records", JSON.stringify(initialized));
-                
-                // 初次初始化整批匯入本機時，可以選擇性不大量打 API，待使用者未來操作再同步。
-                // 若要將初始化資料全建到 Sheet，則可在此處迭代，此處保持單純本機初始化。
                 return initialized;
             }
             return JSON.parse(data);
         }
 
-        /**
-         * 核心 Function 3: renderList()
-         */
         function renderList() {
             const records = loadData();
             const listContainer = document.getElementById('restaurant-list');
             
-            // Counters
-            const activeCount = records.filter(r => r.status === 'active').length;
-            const doneCount = records.filter(r => r.status === 'done').length;
-            document.getElementById('active-count').innerText = activeCount;
-            document.getElementById('done-count').innerText = doneCount;
+            document.getElementById('active-count').innerText = records.filter(r => r.status === 'active').length;
+            document.getElementById('done-count').innerText = records.filter(r => r.status === 'done').length;
             document.getElementById('total-count').innerText = records.length;
 
             if (currentView !== 'list') return;
 
-            // Filtering & Searching
             let filtered = records;
             if (currentFilter !== 'all') filtered = filtered.filter(r => r.status === currentFilter);
             if (searchQuery.trim()) {
                 const q = searchQuery.toLowerCase().trim().replace(/^#/, '');
-                filtered = filtered.filter(r => 
-                    r.name.toLowerCase().includes(q) || 
-                    r.tags.some(t => t.toLowerCase().includes(q))
-                );
+                filtered = filtered.filter(r => r.name.toLowerCase().includes(q) || r.tags.some(t => t.toLowerCase().includes(q)));
             }
 
-            // Sort: active first
             filtered.sort((a, b) => {
                 if (a.status === b.status) return a.name.localeCompare(b.name);
                 return a.status === 'active' ? -1 : 1;
@@ -294,33 +257,17 @@
 
             listContainer.innerHTML = '';
             if (filtered.length === 0) {
-                listContainer.innerHTML = `
-                    <div class="py-16 text-center space-y-4">
-                        <div class="text-5xl">😅</div>
-                        <p class="text-slate-900 font-bold">哎呀，高士德好像沒這間店...</p>
-                    </div>
-                `;
+                listContainer.innerHTML = `<div class="py-16 text-center space-y-4"><div class="text-5xl">😅</div><p class="text-slate-900 font-bold">哎呀，高士德好像沒這間店...</p></div>`;
                 return;
             }
 
             filtered.forEach(r => {
                 const card = document.createElement('div');
                 card.className = `bg-white p-6 rounded-[2.5rem] border-2 border-slate-50 transition-all ${r.status === 'done' ? 'card-done' : ''}`;
-                
                 const tagsHtml = r.tags.map(t => `<span class="text-[10px] text-slate-400">#${t}</span>`).join(' ');
                 const navUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address + ' ' + r.name)}`;
                 
-                // Comments HTML
-                const commentsHtml = (r.comments && r.comments.length > 0) 
-                    ? `<div class="mt-4 pt-4 border-t border-slate-50 space-y-2">
-                        ${r.comments.map(c => `
-                            <div class="flex gap-2">
-                                <span class="text-[10px] bg-slate-50 px-2 py-0.5 rounded-full text-slate-400 font-bold h-fit mt-0.5 shrink-0">食客</span>
-                                <p class="text-[10px] text-slate-500 leading-normal">${c}</p>
-                            </div>
-                        `).join('')}
-                       </div>`
-                    : '';
+                const commentsHtml = (r.comments && r.comments.length > 0) ? `<div class="mt-4 pt-4 border-t border-slate-50 space-y-2">${r.comments.map(c => `<div class="flex gap-2"><span class="text-[10px] bg-slate-50 px-2 py-0.5 rounded-full text-slate-400 font-bold h-fit mt-0.5 shrink-0">食客</span><p class="text-[10px] text-slate-500 leading-normal">${c}</p></div>`).join('')}</div>` : '';
 
                 card.innerHTML = `
                     <div class="flex items-center justify-between gap-4">
@@ -330,34 +277,18 @@
                                 ${(r.comments && r.comments.length > 0) ? `<span class="bg-pink-50 text-pink-500 text-[9px] px-1.5 py-0.5 rounded-md font-bold border border-pink-100 flex items-center gap-1"><i data-lucide="message-square" class="w-2.5 h-2.5"></i> ${r.comments.length}</span>` : ''}
                             </div>
                             <div class="flex flex-wrap gap-1">${tagsHtml}</div>
-                            <div class="flex items-center gap-1 text-[10px] text-slate-400">
-                                <i data-lucide="map-pin" class="w-3 h-3 text-emerald-400"></i>
-                                <span>${r.address}</span>
-                            </div>
+                            <div class="flex items-center gap-1 text-[10px] text-slate-400"><i data-lucide="map-pin" class="w-3 h-3 text-emerald-400"></i><span>${r.address}</span></div>
                         </div>
-                        <button onclick="toggleRecordStatus('${r.id}')" class="shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all ${r.status === 'done' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-emerald-600'}">
-                            ${r.status === 'done' ? '😋 已吃過' : '😋 吃過?'}
-                        </button>
+                        <button onclick="toggleRecordStatus('${r.id}')" class="shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all ${r.status === 'done' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-emerald-600'}">${r.status === 'done' ? '😋 已吃過' : '😋 吃過?'}</button>
                     </div>
-
                     ${r.note ? `<p class="text-[10px] text-amber-500 font-bold bg-amber-50 px-3 py-1 rounded-full w-fit mt-3">✨ ${r.note}</p>` : ''}
-
                     <div class="mt-4 flex gap-2">
-                        <a href="${navUrl}" target="_blank" class="flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-[11px] font-bold hover:bg-blue-100 transition-colors">
-                            <i data-lucide="navigation" class="w-3 h-3"></i> 📍 帶裝我吃
-                        </a>
+                        <a href="${navUrl}" target="_blank" class="flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-[11px] font-bold hover:bg-blue-100 transition-colors"><i data-lucide="navigation" class="w-3 h-3"></i> 📍 帶我去吃</a>
                     </div>
-
                     ${commentsHtml}
-
                     <div class="mt-4 pt-4 border-t border-slate-50 flex gap-2">
-                        <input type="text" id="comment-input-${r.id}" 
-                            onkeyup="if(event.key === 'Enter') addComment('${r.id}')"
-                            placeholder="留個言表達美味..." 
-                            class="flex-1 bg-slate-50 rounded-full px-4 py-2 text-[10px] focus:outline-none focus:bg-white border border-transparent focus:border-slate-100 transition-all">
-                        <button onclick="addComment('${r.id}')" class="p-2 bg-pink-50 text-pink-500 rounded-full hover:bg-pink-100 transition-colors">
-                            <i data-lucide="send" class="w-3 h-3"></i>
-                        </button>
+                        <input type="text" id="comment-input-${r.id}" onkeyup="if(event.key === 'Enter') addComment('${r.id}')" placeholder="留個言表達美味..." class="flex-1 bg-slate-50 rounded-full px-4 py-2 text-[10px] focus:outline-none focus:bg-white border border-transparent focus:border-slate-100 transition-all">
+                        <button onclick="addComment('${r.id}')" class="p-2 bg-pink-50 text-pink-500 rounded-full hover:bg-pink-100 transition-colors"><i data-lucide="send" class="w-3 h-3"></i></button>
                     </div>
                 `;
                 listContainer.appendChild(card);
@@ -365,80 +296,52 @@
             lucide.createIcons();
         }
 
-        // --- Interaction Logic ---
-
+        // --- View & Logic ---
         function switchView(view) {
             currentView = view;
-            document.getElementById('view-lucky').classList.toggle('hidden', view !== 'lucky');
-            document.getElementById('view-list').classList.toggle('hidden', view !== 'list');
-            document.getElementById('view-rate').classList.toggle('hidden', view !== 'rate');
-            
-            document.getElementById('view-tab-lucky').classList.toggle('tab-active', view === 'lucky');
-            document.getElementById('view-tab-lucky').classList.toggle('text-slate-400', view !== 'lucky');
-            document.getElementById('view-tab-list').classList.toggle('tab-active', view === 'list');
-            document.getElementById('view-tab-list').classList.toggle('text-slate-400', view !== 'list');
-            document.getElementById('view-tab-rate').classList.toggle('tab-active', view === 'rate');
-            document.getElementById('view-tab-rate').classList.toggle('text-slate-400', view !== 'rate');
-            
-            if (view === 'rate') {
-                populateRestaurantSelect();
-            }
-
+            ['lucky', 'list', 'rate'].forEach(v => {
+                document.getElementById(`view-${v}`).classList.toggle('hidden', view !== v);
+                const tab = document.getElementById(`view-tab-${v}`);
+                tab.classList.toggle('tab-active', view === v);
+                tab.classList.toggle('text-slate-400', view !== v);
+            });
+            if (view === 'rate') populateRestaurantSelect();
             renderList();
         }
 
-        // --- Rating Selection Logic ---
         let selectedRating = 0;
         function setRating(val) {
             selectedRating = val;
             const hearts = document.querySelectorAll('.rating-heart i');
-            hearts.forEach((heart, index) => {
-                if (index < val) {
-                    heart.classList.remove('text-slate-200');
-                    heart.classList.add('text-pink-400', 'fill-pink-400');
-                } else {
-                    heart.classList.remove('text-pink-400', 'fill-pink-400');
-                    heart.classList.add('text-slate-200');
-                }
+            hearts.forEach((heart, i) => {
+                heart.classList.toggle('text-pink-400', i < val);
+                heart.classList.toggle('fill-pink-400', i < val);
+                heart.classList.toggle('text-slate-200', i >= val);
             });
         }
 
         function populateRestaurantSelect() {
             const select = document.getElementById('rate-restaurant-select');
-            const records = loadData();
-            // Sort by name for the dropdown
-            records.sort((a, b) => a.name.localeCompare(b.name));
-            
+            const records = loadData().sort((a, b) => a.name.localeCompare(b.name));
             select.innerHTML = records.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
         }
 
         function submitReview() {
-            const restaurantId = document.getElementById('rate-restaurant-select').value;
+            const id = document.getElementById('rate-restaurant-select').value;
             const comment = document.getElementById('rate-comment-input').value.trim();
-            
-            if (selectedRating === 0) return showToast('⚠️ 請先點擊愛心進行評分');
-            if (!comment) return showToast('⚠️ 請填寫食評留言');
+            if (selectedRating === 0) return showToast('⚠️ 請先點擊愛心');
+            if (!comment) return showToast('⚠️ 請填寫留言');
 
             const records = loadData();
-            const r = records.find(x => x.id === restaurantId);
+            const r = records.find(x => x.id === id);
             if (r) {
                 if (!r.comments) r.comments = [];
-                const heartIcons = '❤️'.repeat(selectedRating);
-                const newCommentText = `${heartIcons} ${comment}`;
-                r.comments.push(newCommentText);
-                
+                r.comments.push(`${'❤️'.repeat(selectedRating)} ${comment}`);
                 document.getElementById('rate-comment-input').value = '';
                 setRating(0);
                 saveData(records);
-                
-                // 【修改位置】詳細評分上傳：向雲端同步資料變更
-                syncToSheet({ 
-                    action: "update", 
-                    id: r.id, 
-                    changes: { comments: r.comments } 
-                });
-
-                showToast('✨ 評價已送出！感謝您的分享');
+                syncToSheet({ action: "update", id: r.id, changes: { comments: r.comments } });
+                showToast('✨ 評價送出！');
                 switchView('list');
             }
         }
@@ -446,8 +349,7 @@
         function setFilter(filter) {
             currentFilter = filter;
             ['all', 'active', 'done'].forEach(f => {
-                const btn = document.getElementById(`filter-${f}`);
-                btn.className = `px-5 py-2 text-[11px] font-bold rounded-full transition-all ${f === filter ? 'bg-emerald-400 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`;
+                document.getElementById(`filter-${f}`).className = `px-5 py-2 text-[11px] font-bold rounded-full transition-all ${f === filter ? 'bg-emerald-400 text-white shadow-sm' : 'bg-slate-100 text-slate-500'}`;
             });
             renderList();
         }
@@ -463,42 +365,15 @@
             if (r) {
                 r.status = r.status === 'done' ? 'active' : 'done';
                 saveData(records);
-                
-                // 【修改位置】切換狀態上傳：向雲端同步資料變更
-                syncToSheet({ 
-                    action: "update", 
-                    id: r.id, 
-                    changes: { status: r.status } 
-                });
-
-                showToast(r.status === 'done' ? '✅ 已解鎖這間餐廳！' : '🔄 已恢復為待吃清單');
+                syncToSheet({ action: "update", id: r.id, changes: { status: r.status } });
+                showToast(r.status === 'done' ? '✅ 解鎖餐廳！' : '🔄 恢復待吃');
             }
-        }
-
-        function showToast(message) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'bg-slate-900 text-white px-4 py-2 rounded-full text-[10px] font-bold shadow-2xl transition-all opacity-0 translate-y-4';
-            toast.innerText = message;
-            container.appendChild(toast);
-            
-            // Animate in
-            setTimeout(() => {
-                toast.classList.remove('opacity-0', 'translate-y-4');
-            }, 10);
-
-            // Hide and remove
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 2500);
         }
 
         function addComment(id) {
             const input = document.getElementById(`comment-input-${id}`);
             const text = input.value.trim();
             if (!text) return;
-            
             const records = loadData();
             const r = records.find(x => x.id === id);
             if (r) {
@@ -506,89 +381,73 @@
                 r.comments.push(text);
                 input.value = '';
                 saveData(records);
-                
-                // 【修改位置】快速留言上傳：向雲端同步資料變更
-                syncToSheet({ 
-                    action: "update", 
-                    id: r.id, 
-                    changes: { comments: r.comments } 
-                });
-
+                syncToSheet({ action: "update", id: r.id, changes: { comments: r.comments } });
                 showToast('💬 留言已送出！');
             }
         }
 
-        /**
-         * 隨機抽籤 (Lucky Draw)
-         */
+        function showToast(msg) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'bg-slate-900 text-white px-4 py-2 rounded-full text-[10px] font-bold shadow-2xl transition-all opacity-0 translate-y-4';
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('opacity-0', 'translate-y-4'), 10);
+            setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-2'); setTimeout(() => toast.remove(), 300); }, 2500);
+        }
+
         function luckyDraw() {
             if (isSpinning) return;
             const records = loadData().filter(r => r.status === 'active');
-            if (records.length === 0) return alert("沒待吃餐廳了！全部吃光了嗎？");
-
+            if (records.length === 0) return alert("全部吃光了！");
             isSpinning = true;
             const btn = document.getElementById('btn-draw');
             const display = document.getElementById('lucky-display');
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             btn.innerText = '正在選餐...';
             display.classList.add('spinning');
-
+            
             let counter = 0;
-            const duration = 2000;
-            const intervalTime = 100;
-            const totalSteps = duration / intervalTime;
-
             const timer = setInterval(() => {
                 const randomSample = records[Math.floor(Math.random() * records.length)];
-                display.innerHTML = `
-                    <p class="text-xs text-slate-400 uppercase tracking-widest animate-pulse">挑選中...</p>
-                    <h3 class="text-3xl font-bold text-slate-800">${randomSample.name}</h3>
-                `;
-                
+                display.innerHTML = `<p class="text-xs text-slate-400 uppercase tracking-widest animate-pulse">挑選中...</p><h3 class="text-3xl font-bold text-slate-800">${randomSample.name}</h3>`;
                 counter++;
-                if (counter >= totalSteps) {
+                if (counter >= 20) {
                     clearInterval(timer);
                     const final = records[Math.floor(Math.random() * records.length)];
                     display.classList.remove('spinning');
-                    display.innerHTML = `
-                        <div class="space-y-4">
-                            <div class="inline-flex p-3 bg-amber-50 rounded-full">
-                                <i data-lucide="sparkles" class="w-8 h-8 text-amber-500"></i>
-                            </div>
-                            <h3 class="text-4xl font-bold text-slate-900">${final.name}</h3>
-                            <div class="flex flex-wrap justify-center gap-1">
-                                ${final.tags.map(t => `<span class="bg-slate-100 text-[10px] px-2 py-0.5 rounded-full text-slate-400">#${t}</span>`).join('')}
-                            </div>
-                            <p class="text-[11px] text-slate-400 max-w-[200px] mx-auto leading-relaxed">📍 ${final.address}</p>
-                            <button onclick="switchView('list'); document.getElementById('search-input').value='${final.name}'; handleSearch();" class="text-xs text-pink-500 font-bold border-b border-pink-200">去美食牆看評價</button>
-                        </div>
-                    `;
+                    display.innerHTML = `<div class="space-y-4"><div class="inline-flex p-3 bg-amber-50 rounded-full"><i data-lucide="sparkles" class="w-8 h-8 text-amber-500"></i></div><h3 class="text-4xl font-bold text-slate-900">${final.name}</h3><div class="flex flex-wrap justify-center gap-1">${final.tags.map(t => `<span class="bg-slate-100 text-[10px] px-2 py-0.5 rounded-full text-slate-400">#${t}</span>`).join('')}</div><p class="text-[11px] text-slate-400 max-w-[200px] mx-auto leading-relaxed">📍 ${final.address}</p><button onclick="switchView('list'); document.getElementById('search-input').value='${final.name}'; handleSearch();" class="text-xs text-pink-500 font-bold border-b border-pink-200">去美食牆看評價</button></div>`;
                     lucide.createIcons();
                     confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#fbdf7e', '#f472b6', '#4ade80'] });
                     isSpinning = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.innerText = '抽中了！再抽一張？';
                 }
-            }, intervalTime);
+            }, 100);
         }
 
-        // --- 初始化拉取雲端資料與載入本機快取 ---
+        // --- 初始化邏輯：包含「自動將本機資料整批建檔到 Sheet」---
         document.addEventListener('DOMContentLoaded', () => {
             renderList();
             lucide.createIcons();
 
-            // 若有填寫有效網址，在進入 App 時主動向雲端拉取最新資料同步至本機快取
-            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbzoilGvpfSy0kQByQ4s7Zul451i9UMQlHbvMJqzRQiIw66OoFiGxmeXkQN31l31IMzr/exec") {
+            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "PASTE_YOUR_APPS_SCRIPT_URL_HERE") {
                 fetch(APPS_SCRIPT_URL)
                     .then(res => res.json())
                     .then(cloudRecords => {
+                        // 如果雲端有資料，就用雲端的蓋過本機
                         if (Array.isArray(cloudRecords) && cloudRecords.length > 0) {
-                            // 將雲端拉回來的最新資料同步覆寫進本機 localStorage 中並重新渲染
                             saveData(cloudRecords);
-                            console.log("已成功自動同步雲端最新數據至本機！");
+                            console.log("已同步雲端資料");
+                        } else {
+                            // 【關鍵修復】如果雲端是空的（回傳 []），代表這是一張全新的試算表
+                            // 我們必須把本機由 SEED_DATA 產生的資料，整批推送到 Google Sheet！
+                            console.log("發現空試算表，正在將本機資料上傳建檔...");
+                            const localRecords = loadData();
+                            syncToSheet({ action: "batch_create", records: localRecords });
                         }
                     })
-                    .catch(err => console.warn("初始化拉取雲端資料失敗（可能試算表尚無數據），繼續使用本機儲存機制:", err));
+                    .catch(err => console.warn("初始化拉取失敗:", err));
             }
         });
     </script>
