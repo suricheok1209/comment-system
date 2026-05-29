@@ -101,7 +101,8 @@
                 <div class="space-y-4">
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">選擇餐廳</label>
-                        <select id="rate-restaurant-select" class="w-full px-5 py-3 bg-slate-50 rounded-2xl text-sm focus:outline-none focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all appearance-none cursor-pointer"></select>
+                        <select id="rate-restaurant-select" class="w-full px-5 py-3 bg-slate-50 rounded-2xl text-sm focus:outline-none focus:bg-white border-2 border-slate-100 focus:border-pink-300 transition-all cursor-pointer">
+                            </select>
                     </div>
 
                     <div class="space-y-2">
@@ -126,7 +127,7 @@
         </div>
 
         <footer class="pt-8 text-center border-t border-slate-50">
-            <p class="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">Horta Lunch Assistant v2.2</p>
+            <p class="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">Horta Lunch Assistant v2.3</p>
             <p class="text-[9px] text-slate-200 mt-1">Synced with Google Sheets</p>
         </footer>
     </div>
@@ -135,7 +136,7 @@
 
     <script>
         // ==========================================
-        // ★ 請將下方替換為你的 Google Apps Script 網址
+        // ★ 請將下方替換為你的 Google Apps Script 網址 (維持你現在使用的那個即可)
         // ==========================================
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxpSuBpKdSZOQPkaOtSxokC4ad_V1AwG_ZaCC25eQiMK4QsYjGmV_zTec8DbVEO7L02/exec";
 
@@ -203,13 +204,12 @@
             
             fetch(APPS_SCRIPT_URL, {
                 method: "POST",
-                // 必須設定 text/plain 避免 CORS preflight
                 headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(payload)
             })
             .then(res => res.json())
             .then(data => console.log("雲端同步:", data))
-            .catch(err => console.warn("同步失敗 (本機仍可運作):", err));
+            .catch(err => console.warn("同步失敗:", err));
         }
 
         function saveData(records) {
@@ -296,7 +296,6 @@
             lucide.createIcons();
         }
 
-        // --- View & Logic ---
         function switchView(view) {
             currentView = view;
             ['lucky', 'list', 'rate'].forEach(v => {
@@ -312,7 +311,8 @@
         let selectedRating = 0;
         function setRating(val) {
             selectedRating = val;
-            const hearts = document.querySelectorAll('.rating-heart i');
+            // 【修復重點2】改抓 svg 標籤，因為 lucide 把 i 替換成了 svg
+            const hearts = document.querySelectorAll('.rating-heart svg');
             hearts.forEach((heart, i) => {
                 heart.classList.toggle('text-pink-400', i < val);
                 heart.classList.toggle('fill-pink-400', i < val);
@@ -323,26 +323,39 @@
         function populateRestaurantSelect() {
             const select = document.getElementById('rate-restaurant-select');
             const records = loadData().sort((a, b) => a.name.localeCompare(b.name));
-            select.innerHTML = records.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+            // 加入預設提示選項
+            select.innerHTML = '<option value="" disabled selected>請點擊選擇想評價的餐廳...</option>' + records.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
         }
 
         function submitReview() {
             const id = document.getElementById('rate-restaurant-select').value;
             const comment = document.getElementById('rate-comment-input').value.trim();
-            if (selectedRating === 0) return showToast('⚠️ 請先點擊愛心');
-            if (!comment) return showToast('⚠️ 請填寫留言');
+            
+            if (!id) return showToast('⚠️ 請先從下拉選單選擇餐廳');
+            if (selectedRating === 0) return showToast('⚠️ 請點擊愛心給予評分');
+            if (!comment) return showToast('⚠️ 請填寫食評留言');
 
             const records = loadData();
-            const r = records.find(x => x.id === id);
+            // 確保型別一致，精準找到餐廳
+            const r = records.find(x => String(x.id) === String(id));
             if (r) {
-                if (!r.comments) r.comments = [];
+                // 確保 comments 是一個陣列
+                if (!Array.isArray(r.comments)) r.comments = [];
                 r.comments.push(`${'❤️'.repeat(selectedRating)} ${comment}`);
+                
+                // 清空表單並還原狀態
                 document.getElementById('rate-comment-input').value = '';
                 setRating(0);
+                populateRestaurantSelect();
+                
+                // 儲存與同步
                 saveData(records);
                 syncToSheet({ action: "update", id: r.id, changes: { comments: r.comments } });
+                
                 showToast('✨ 評價送出！');
-                switchView('list');
+                switchView('list'); // 自動跳轉回美食牆看最新評價
+            } else {
+                showToast('⚠️ 找不到該餐廳資料，請重整網頁');
             }
         }
 
@@ -377,7 +390,7 @@
             const records = loadData();
             const r = records.find(x => x.id === id);
             if (r) {
-                if (!r.comments) r.comments = [];
+                if (!Array.isArray(r.comments)) r.comments = [];
                 r.comments.push(text);
                 input.value = '';
                 saveData(records);
@@ -426,7 +439,6 @@
             }, 100);
         }
 
-        // --- 初始化邏輯：包含「自動將本機資料整批建檔到 Sheet」---
         document.addEventListener('DOMContentLoaded', () => {
             renderList();
             lucide.createIcons();
@@ -435,14 +447,9 @@
                 fetch(APPS_SCRIPT_URL)
                     .then(res => res.json())
                     .then(cloudRecords => {
-                        // 如果雲端有資料，就用雲端的蓋過本機
                         if (Array.isArray(cloudRecords) && cloudRecords.length > 0) {
                             saveData(cloudRecords);
-                            console.log("已同步雲端資料");
                         } else {
-                            // 【關鍵修復】如果雲端是空的（回傳 []），代表這是一張全新的試算表
-                            // 我們必須把本機由 SEED_DATA 產生的資料，整批推送到 Google Sheet！
-                            console.log("發現空試算表，正在將本機資料上傳建檔...");
                             const localRecords = loadData();
                             syncToSheet({ action: "batch_create", records: localRecords });
                         }
