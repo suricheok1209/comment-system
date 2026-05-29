@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>高士德午餐小助手</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <style>
         body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: #fafafa; }
@@ -33,7 +30,6 @@
 <body class="min-h-screen text-slate-800 pb-28">
 
     <div id="app" class="max-w-md mx-auto px-6 pt-8 pb-12 space-y-6">
-        <!-- Header -->
         <header class="text-center space-y-2">
             <div class="inline-flex p-3 bg-pink-50 rounded-full mb-1">
                 <i data-lucide="utensils" class="w-6 h-6 text-pink-500"></i>
@@ -42,7 +38,6 @@
             <p class="text-slate-500 text-xs">日系可愛風格的美食指南</p>
         </header>
 
-        <!-- Stats Counter -->
         <section class="flex justify-center gap-6 py-2">
             <div class="flex flex-col items-center">
                 <div id="active-count" class="px-3 py-1 bg-amber-50 text-amber-500 rounded-full text-xs font-bold shadow-sm">0</div>
@@ -58,7 +53,6 @@
             </div>
         </section>
 
-        <!-- View Switcher -->
         <div class="flex justify-center border-b border-slate-100 overflow-x-auto hide-scroll">
             <button onclick="switchView('lucky')" id="view-tab-lucky" class="px-6 py-3 text-sm font-bold transition-all tab-active flex items-center gap-2 whitespace-nowrap">
                 <i data-lucide="sparkles" class="w-4 h-4"></i> 隨機抽籤
@@ -71,7 +65,6 @@
             </button>
         </div>
 
-        <!-- lucky View -->
         <div id="view-lucky" class="space-y-6 pt-4">
             <div id="lucky-display" class="bg-white p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm text-center min-h-[220px] flex flex-col items-center justify-center space-y-4">
                 <div id="lucky-icon" class="text-slate-100">
@@ -87,9 +80,7 @@
             </button>
         </div>
 
-        <!-- List/Filter View -->
         <div id="view-list" class="hidden space-y-6 pt-4">
-            <!-- Search Bar -->
             <div class="relative">
                 <i data-lucide="search" class="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
                 <input 
@@ -101,20 +92,16 @@
                 >
             </div>
 
-            <!-- Filter Tabs -->
             <div class="flex justify-center space-x-2">
                 <button onclick="setFilter('all')" id="filter-all" class="px-5 py-2 text-[11px] font-bold rounded-full transition-all bg-emerald-400 text-white shadow-sm">全部</button>
                 <button onclick="setFilter('active')" id="filter-active" class="px-5 py-2 text-[11px] font-bold rounded-full transition-all bg-slate-100 text-slate-500">待吃</button>
                 <button onclick="setFilter('done')" id="filter-done" class="px-5 py-2 text-[11px] font-bold rounded-full transition-all bg-slate-100 text-slate-500">已解鎖</button>
             </div>
 
-            <!-- List -->
             <div id="restaurant-list" class="grid grid-cols-1 gap-5">
-                <!-- Data rendered here -->
-            </div>
+                </div>
         </div>
 
-        <!-- Rating View -->
         <div id="view-rate" class="hidden space-y-6 pt-4">
             <div class="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm space-y-6">
                 <header>
@@ -126,8 +113,7 @@
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">選擇餐廳</label>
                         <select id="rate-restaurant-select" class="w-full px-5 py-3 bg-slate-50 rounded-2xl text-sm focus:outline-none focus:bg-white border-2 border-transparent focus:border-pink-100 transition-all appearance-none cursor-pointer">
-                            <!-- Options injected by JS -->
-                        </select>
+                            </select>
                     </div>
 
                     <div class="space-y-2">
@@ -153,17 +139,18 @@
             </div>
         </div>
 
-        <!-- Footer -->
         <footer class="pt-8 text-center border-t border-slate-50">
             <p class="text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">Horta Lunch Assistant v2.1</p>
             <p class="text-[9px] text-slate-200 mt-1">Made with Vanilla JS for better performance</p>
         </footer>
     </div>
 
-    <!-- Toast Notification -->
     <div id="toast-container" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[100] space-y-2 pointer-events-none"></div>
 
     <script>
+        // --- 後端同步設定公用網址 ---
+        const APPS_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+
         const SEED_DATA = [
             { "name": "千鳥", "tags": ["日式", "壽喜燒"], "address": "澳門文第士街10-12號", "status": "active" },
             { "name": "小泉居", "tags": ["台式", "飲品"], "address": "澳門沙嘉都喇街25號", "status": "active" },
@@ -221,6 +208,28 @@
         }
 
         /**
+         * 後端非同步同步傳送工具 (syncToSheet)
+         */
+        function syncToSheet(payload) {
+            if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "PASTE_YOUR_APPS_SCRIPT_URL_HERE") {
+                return; // 如果還是預設的預留位置，則靜態不傳送
+            }
+            
+            fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("雲端同步成功:", data);
+            })
+            .catch(err => {
+                console.warn("雲端同步失敗，但不影響本機運作:", err);
+            });
+        }
+
+        /**
          * 核心 Function 1: saveData(data)
          */
         function saveData(records) {
@@ -242,6 +251,9 @@
                     comments: []
                 }));
                 localStorage.setItem("records", JSON.stringify(initialized));
+                
+                // 初次初始化整批匯入本機時，可以選擇性不大量打 API，待使用者未來操作再同步。
+                // 若要將初始化資料全建到 Sheet，則可在此處迭代，此處保持單純本機初始化。
                 return initialized;
             }
             return JSON.parse(data);
@@ -332,7 +344,7 @@
 
                     <div class="mt-4 flex gap-2">
                         <a href="${navUrl}" target="_blank" class="flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-[11px] font-bold hover:bg-blue-100 transition-colors">
-                            <i data-lucide="navigation" class="w-3 h-3"></i> 📍 帶我去吃
+                            <i data-lucide="navigation" class="w-3 h-3"></i> 📍 帶裝我吃
                         </a>
                     </div>
 
@@ -412,11 +424,20 @@
             if (r) {
                 if (!r.comments) r.comments = [];
                 const heartIcons = '❤️'.repeat(selectedRating);
-                r.comments.push(`${heartIcons} ${comment}`);
+                const newCommentText = `${heartIcons} ${comment}`;
+                r.comments.push(newCommentText);
                 
                 document.getElementById('rate-comment-input').value = '';
                 setRating(0);
                 saveData(records);
+                
+                // 【修改位置】詳細評分上傳：向雲端同步資料變更
+                syncToSheet({ 
+                    action: "update", 
+                    id: r.id, 
+                    changes: { comments: r.comments } 
+                });
+
                 showToast('✨ 評價已送出！感謝您的分享');
                 switchView('list');
             }
@@ -442,6 +463,14 @@
             if (r) {
                 r.status = r.status === 'done' ? 'active' : 'done';
                 saveData(records);
+                
+                // 【修改位置】切換狀態上傳：向雲端同步資料變更
+                syncToSheet({ 
+                    action: "update", 
+                    id: r.id, 
+                    changes: { status: r.status } 
+                });
+
                 showToast(r.status === 'done' ? '✅ 已解鎖這間餐廳！' : '🔄 已恢復為待吃清單');
             }
         }
@@ -477,6 +506,14 @@
                 r.comments.push(text);
                 input.value = '';
                 saveData(records);
+                
+                // 【修改位置】快速留言上傳：向雲端同步資料變更
+                syncToSheet({ 
+                    action: "update", 
+                    id: r.id, 
+                    changes: { comments: r.comments } 
+                });
+
                 showToast('💬 留言已送出！');
             }
         }
@@ -535,10 +572,24 @@
             }, intervalTime);
         }
 
-        // Init
+        // --- 初始化拉取雲端資料與載入本機快取 ---
         document.addEventListener('DOMContentLoaded', () => {
             renderList();
             lucide.createIcons();
+
+            // 若有填寫有效網址，在進入 App 時主動向雲端拉取最新資料同步至本機快取
+            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbxRDmBQnu6IMu_sGo4hmqtm7jXxvv0-Iu1izTn7mW-F3rWKTC3TbQ069tALcLknCTDK/exec") {
+                fetch(APPS_SCRIPT_URL)
+                    .then(res => res.json())
+                    .then(cloudRecords => {
+                        if (Array.isArray(cloudRecords) && cloudRecords.length > 0) {
+                            // 將雲端拉回來的最新資料同步覆寫進本機 localStorage 中並重新渲染
+                            saveData(cloudRecords);
+                            console.log("已成功自動同步雲端最新數據至本機！");
+                        }
+                    })
+                    .catch(err => console.warn("初始化拉取雲端資料失敗（可能試算表尚無數據），繼續使用本機儲存機制:", err));
+            }
         });
     </script>
 </body>
