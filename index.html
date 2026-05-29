@@ -578,7 +578,7 @@
             lucide.createIcons();
 
             // 若有填寫有效網址，在進入 App 時主動向雲端拉取最新資料同步至本機快取
-            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbxRDmBQnu6IMu_sGo4hmqtm7jXxvv0-Iu1izTn7mW-F3rWKTC3TbQ069tALcLknCTDK/exec") {
+            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbz6oLtFE42hh9aTvD1g4CX9UIGu2QUIfl6ChVUVRaVBezL6FtFvoS2tFd0i-QF9FpKq/exec") {
                 fetch(APPS_SCRIPT_URL)
                     .then(res => res.json())
                     .then(cloudRecords => {
